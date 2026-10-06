@@ -1,0 +1,453 @@
+:root {
+  --bg: #0f1115;
+  --surface: #1a1d24;
+  --surface-2: #232733;
+  --border: #2e3340;
+  --text: #e6e8ee;
+  --text-dim: #9aa0b0;
+  --accent: #7c5cff;
+  --good: #5b8def;
+  --evil: #e0524d;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app { max-width: 720px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 16px; margin: 0 0 8px; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+
+button {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 10px 14px; font-size: 14px; cursor: pointer;
+}
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+button.danger { background: var(--evil); }
+
+input, select, textarea {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; font-size: 14px; width: 100%;
+}
+
+.row { display: flex; gap: 8px; align-items: center; }
+.row.wrap { flex-wrap: wrap; }
+.spacer { flex: 1; }
+
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); }
+.tag.good { background: rgba(91, 141, 239, 0.15); color: var(--good); }
+.tag.evil { background: rgba(224, 82, 77, 0.15); color: var(--evil); }
+
+.dead { opacity: 0.45; text-decoration: line-through; }
+.muted { color: var(--text-dim); font-size: 13px; }
+.list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 12px; }
+.char-card { background: var(--surface-2); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+.char-card:hover { border-color: var(--accent); }
+.char-card img { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; margin-bottom: 6px; }
+.char-card .char-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.char-card .char-ability { font-size: 11px; color: var(--text-dim); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.char-card.selected { border-color: var(--accent); box-shadow: 0 0 8px rgba(124, 92, 255, 0.3); }
+.char-card.assigned { opacity: 0.5; }
+
+/* Character type sections */
+.char-section {
+  margin-top: 16px;
+}
+
+.char-section:first-child {
+  margin-top: 12px;
+}
+
+.char-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* === Game Circle === */
+.circle {
+  position: relative;
+  width: min(90vw, 420px);
+  height: min(90vw, 420px);
+  margin: 16px auto;
+  /* Distance from center to seat center. The 48px keeps the portrait inside the circle edge. */
+  --radius: calc(min(90vw, 420px) / 2 - 48px);
+}
+
+.circle-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.seat {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72px;
+  height: 72px; /* portrait + label space */
+  margin-left: -36px; /* -(width/2) to center on container center */
+  margin-top: -36px; /* -(height/2) to center on container center */
+  transform-origin: center;
+  /* Rotate around the circle center, then push outward along the rotated axis */
+  transform: rotate(var(--rot)) translateY(calc(-1 * var(--radius)));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+/* Counter-rotate children to stay upright */
+.seat > * {
+  transform: rotate(calc(var(--rot) * -1));
+}
+
+.seat-portrait {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  background: var(--surface-2);
+}
+
+.seat-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.seat-portrait-empty {
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+}
+
+/* Shroud overlay (death) */
+.seat-shroud {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 17, 21, 0.7);
+  border-radius: 50%;
+}
+
+.seat.dead {
+  opacity: 0.5;
+}
+
+.seat.selected .seat-portrait {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(124, 92, 255, 0.4);
+}
+
+.seat-label {
+  font-size: 10px;
+  margin-top: 3px;
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Center of circle */
+.circle-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 10;
+}
+
+/* Action popover in circle center */
+.action-popover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-popover-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-popover-targets {
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.action-popover button {
+  width: 100%;
+  max-width: 120px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.action-popover button.secondary {
+  max-width: 80px;
+}
+
+/* Scale down for larger player counts */
+
+/* Smaller radius so seats sit closer to the edge (and smaller) for 15-20 players */
+.circle[data-count="15"],
+.circle[data-count="16"],
+.circle[data-count="17"],
+.circle[data-count="18"],
+.circle[data-count="19"],
+.circle[data-count="20"] {
+  --radius: calc(min(90vw, 420px) / 2 - 40px);
+}
+
+.circle[data-count="15"] .seat-portrait,
+.circle[data-count="16"] .seat-portrait,
+.circle[data-count="17"] .seat-portrait,
+.circle[data-count="18"] .seat-portrait,
+.circle[data-count="19"] .seat-portrait,
+.circle[data-count="20"] .seat-portrait {
+  width: 44px;
+  height: 44px;
+}
+
+.circle[data-count="15"] .seat,
+.circle[data-count="16"] .seat,
+.circle[data-count="17"] .seat,
+.circle[data-count="18"] .seat,
+.circle[data-count="19"] .seat,
+.circle[data-count="20"] .seat {
+  width: 56px;
+  height: 60px; /* smaller portrait + label space */
+  margin-left: -28px;
+  margin-top: -30px; /* -(height/2) to center on container center */
+}
+
+.circle[data-count="15"] .seat-label,
+.circle[data-count="16"] .seat-label,
+.circle[data-count="17"] .seat-label,
+.circle[data-count="18"] .seat-label,
+.circle[data-count="19"] .seat-label,
+.circle[data-count="20"] .seat-label {
+  font-size: 9px;
+  max-width: 56px;
+}
+
+/* === Setup Wizard === */
+.setup-wizard { margin-top: 8px; }
+
+.wizard-steps {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.wizard-step {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+}
+
+.wizard-step.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.wizard-step.done {
+  background: rgba(91, 141, 239, 0.2);
+  color: var(--good);
+}
+
+.wizard-names {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 10px 0;
+}
+
+/* Character tray (step 3) */
+.char-tray {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 0;
+}
+
+.tray-card {
+  flex-shrink: 0;
+  width: 64px;
+  text-align: center;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+}
+
+.tray-card.selected {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.tray-card img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.tray-card .char-name {
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+/* On-block seat visual (red ring) */
+.seat.on-block .seat-portrait {
+  border-color: var(--evil);
+  box-shadow: 0 0 10px rgba(224, 82, 77, 0.5);
+}
+
+/* Center vote counter */
+.vote-counter-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.vote-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vote-count {
+  min-width: 32px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.vote-done {
+  margin-top: 6px;
+  padding: 4px 12px;
+  font-size: 11px;
+  border-radius: 999px;
+}
+
+/* === Prominent vote tracker card === */
+.vote-tracker {
+  border-width: 2px;
+  padding: 16px;
+}
+
+.vote-tracker.on-block {
+  border-color: var(--evil);
+  box-shadow: 0 0 12px rgba(224, 82, 77, 0.3);
+}
+
+.vote-tracker-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.vote-tracker-portrait {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border);
+}
+
+.vote-tracker-portrait-empty {
+  background: var(--surface-2);
+}
+
+.vote-tracker-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.vote-tracker-count {
+  text-align: center;
+  margin: 8px 0;
+}
+
+.vote-tracker-number {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.vote-tracker-number.danger {
+  color: var(--evil);
+}
+
+.vote-tracker-status {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.vote-tracker-status.danger {
+  color: var(--evil);
+}
+
+.vote-tracker-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.vote-tracker-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vote-tracker-btn.done {
+  width: auto;
+  border-radius: 999px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+.vote-tracker-btn.minus:disabled {
+  opacity: 0.4;
+}
